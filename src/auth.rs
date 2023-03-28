@@ -39,27 +39,24 @@ impl FromStr for AuthCodes {
     }
 }
 
-pub struct Authenticator {
-    username: String,
-    password: String,
-}
+pub struct Authenticator {}
 
 impl Authenticator {
-    pub fn new(username: String, password: String) -> Self {
-        Self { username, password }
+    pub fn new() -> Self {
+        Self {}
     }
 
-    pub fn authenticate(&self) -> Result<(bool, AuthCodes, String), AuthCodes> {
-        let output = self.spawn_authenticator();
-
+    pub fn authenticate(&self, output: String) -> Result<(bool, AuthCodes, String), AuthCodes> {
         return self.parse_output(&output);
     }
 
     /// Spawns the SWMAuth2 process and returns the output.
     /// The output is the output of the SWMAuth2 process.
-    fn spawn_authenticator(&self) -> String {
-        let enc_username = general_purpose::STANDARD.encode(&self.username.as_bytes());
-        let enc_password = general_purpose::STANDARD.encode(&self.password.as_bytes());
+    /// Throws an error if SWMAuth2 doens't exist.
+    /// Wouldn't recommend using this.
+    pub fn spawn_authenticator(&self, username: &str, password: &str) -> String {
+        let enc_username = general_purpose::STANDARD.encode(username.as_bytes());
+        let enc_password = general_purpose::STANDARD.encode(password.as_bytes());
 
         // chmod the file to give perms
         fs::set_permissions(SWMAUTH2_PATH, fs::Permissions::from_mode(0o777))
