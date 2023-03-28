@@ -50,7 +50,7 @@ impl Authenticator {
         Self { username, password }
     }
 
-    pub fn authenticate(&self) -> Result<(String, AuthCodes, String), AuthCodes> {
+    pub fn authenticate(&self) -> Result<(bool, AuthCodes, String), AuthCodes> {
         let output = self.spawn_authenticator();
 
         return self.parse_output(&output);
@@ -78,7 +78,7 @@ impl Authenticator {
         output
     }
 
-    fn parse_output(&self, output: &String) -> Result<(String, AuthCodes, String), AuthCodes> {
+    fn parse_output(&self, output: &String) -> Result<(bool, AuthCodes, String), AuthCodes> {
         let mut unparsed_result = String::new();
 
         if let Some(index) = output.find("<result:") {
@@ -95,13 +95,26 @@ impl Authenticator {
 
         // get the values from the vector
         let success = split_result.get(0).unwrap();
-        let result_code = AuthCodes::from_str(split_result.get(1).unwrap()).unwrap();
-        let token = split_result.get(2).unwrap();
+        let non_enum_code = split_result.get(1);
 
-        if success == &"false" || result_code != AuthCodes::Success {
-            return Err(result_code);
+        if non_enum_code.is_none() {
+            // only happens if the username or password is wrong
+            return Err(AuthCodes::BadCredentials);
         }
 
-        return Ok((success.to_string(), result_code, token.to_string()));
+        let token = split_result.get(2).unwrap();
+        let result_code = AuthCodes::from_str(non_enum_code.unwrap());
+
+        if let Err(_) = result_code {
+            return Err(result_code.unwrap());
+        }
+
+        if success == &"false" {
+            return Err(result_code.unwrap());
+        }
+
+        let success_as_bool = success.parse::<bool>().unwrap();
+
+        return Ok((success_as_bool, result_code.unwrap(), token.to_string()));
     }
 }
