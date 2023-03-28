@@ -1,9 +1,9 @@
-#![allow(dead_code)]
-
 use std::{fs, os::unix::prelude::PermissionsExt, process::Command, str::FromStr};
 
 use crate::auth_util;
 use base64::{engine::general_purpose, Engine as _};
+
+const SWMAUTH2_PATH: &'static str = "/Users/Shared/ScriptWare/SWMAuth2";
 
 /// Codes that auth returns
 #[derive(Debug, PartialEq)]
@@ -65,10 +65,10 @@ impl Authenticator {
         let enc_password = general_purpose::STANDARD.encode(&self.password.as_bytes());
 
         // chmod the file to give perms
-        fs::set_permissions("./SWMAuth2", fs::Permissions::from_mode(0o777))
+        fs::set_permissions(SWMAUTH2_PATH, fs::Permissions::from_mode(0o777))
             .expect("Failed to set permissions for SWMAuth2");
 
-        let cmd = Command::new("./SWMAuth2")
+        let cmd = Command::new(SWMAUTH2_PATH)
             .args([enc_username, enc_password])
             .output()
             .expect("failed to execute process");
@@ -94,26 +94,25 @@ impl Authenticator {
         let split_result: Vec<&str> = unparsed_result.split('.').collect();
 
         // get the values from the vector
-        let success = split_result.get(0).unwrap();
+        let success = split_result.get(0).expect("Couldn't get success value");
         let non_enum_code = split_result.get(1);
 
         if non_enum_code.is_none() {
-            // only happens if the username or password is wrong
             return Err(AuthCodes::BadCredentials);
         }
 
         let token = split_result.get(2).unwrap();
-        let result_code = AuthCodes::from_str(non_enum_code.unwrap());
+        let result_code = AuthCodes::from_str(non_enum_code.expect("Couldln't convert to enum"));
 
         if let Err(_) = result_code {
-            return Err(result_code.unwrap());
+            return Err(result_code.expect("Couldln't convert to enum"));
+        } else if success == &"false" {
+            return Err(result_code.expect("Success code error in result"));
         }
 
-        if success == &"false" {
-            return Err(result_code.unwrap());
-        }
-
-        let success_as_bool = success.parse::<bool>().unwrap();
+        let success_as_bool = success
+            .parse::<bool>()
+            .expect("Failed to parse success code as bool");
 
         return Ok((success_as_bool, result_code.unwrap(), token.to_string()));
     }
