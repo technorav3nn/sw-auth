@@ -2,7 +2,6 @@ mod auth;
 mod auth_util;
 
 pub use auth::*;
-pub use auth_util::*;
 
 #[cfg(test)]
 mod tests {
