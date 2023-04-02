@@ -4,7 +4,6 @@ use base64::{engine::general_purpose, Engine as _};
 
 const SWMAUTH2_PATH: &'static str = "/Users/Shared/ScriptWare/SWMAuth2";
 
-/// Codes that auth returns
 #[derive(Debug, PartialEq)]
 pub enum AuthCodes {
     NoSavedLogin,
@@ -17,7 +16,7 @@ pub enum AuthCodes {
     BadServerResponse,
     InternalServerError,
     Success,
-    UnknownError,
+    UnknownError(String),
 }
 
 impl FromStr for AuthCodes {
@@ -50,10 +49,6 @@ impl Authenticator {
         return self.parse_output(&output);
     }
 
-    /// Spawns the SWMAuth2 process and returns the output.
-    /// The output is the output of the SWMAuth2 process.
-    /// Throws an error if SWMAuth2 doens't exist.
-    /// Wouldn't recommend using this.
     pub fn spawn_authenticator(&self, username: &str, password: &str) -> String {
         let enc_username = general_purpose::STANDARD.encode(username.as_bytes());
         let enc_password = general_purpose::STANDARD.encode(password.as_bytes());
